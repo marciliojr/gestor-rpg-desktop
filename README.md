@@ -50,7 +50,9 @@ O banco SQLite fica em `GESTOR_RPG_DATA` (se definida) ou no diretório de dados
 
 ## Executável
 
-No Linux, o empacote gera um binário congelado (PyInstaller) e, se `appimagetool` estiver no PATH, o AppImage:
+O AppImage 1.0 está na [release v1.0.0](https://github.com/marciliojr/gestor-rpg-desktop/releases/tag/v1.0.0). Marque como executável e rode `./GestorRPG.AppImage`.
+
+Para gerar de novo no Linux (PyInstaller; AppImage se `appimagetool` estiver no PATH):
 
 ```bash
 pip install -e ".[packaging]"

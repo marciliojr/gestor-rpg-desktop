@@ -15,7 +15,9 @@ Hover da nav, selo de rodada, iniciativa “clara” além do que já está, car
 
 ## Git / GitHub
 
-Repo local inicializado na entrega 1.0. Nome esperado: `marciliojr/gestor-rpg-desktop`. Commits só a pedido (esta entrega pediu repo + README + changelog).
+- Repositório: https://github.com/marciliojr/gestor-rpg-desktop
+- Release 1.0.0 (AppImage): https://github.com/marciliojr/gestor-rpg-desktop/releases/tag/v1.0.0
+- Commits só a pedido (esta entrega pediu repo + README + changelog).
 
 ## Testes
 
