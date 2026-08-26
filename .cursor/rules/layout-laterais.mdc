@@ -1,0 +1,19 @@
+---
+description: Layout em menus laterais — sem barra superior de menus
+alwaysApply: true
+---
+
+# Layout laterais
+
+A janela é três colunas fixas, sem `QMenuBar`, sem header largo e sem dock flutuante:
+
+1. Esquerda `#appSidebar`: marca, campanha, grupos MESA / PREPARAR / JOGAR, FERRAMENTAS, Como usar e Sair
+2. Centro `#appContent`: página ativa
+3. Direita `#appRail`: painel de Dados; na página Combate, o mapa (`#mapPanel`) fica acima dos dados no mesmo rail
+
+Listas de cada página (mesas, personagens, manuais, catálogo, iniciativa, log da mesa) usam `objectName="sidePanel"`. Não voltar ações para menu de topo. Não reintroduzir `QDockWidget` para dados.
+
+Nav obrigatória: MESA (Campanhas); PREPARAR (Fichas, Documentos, Monstros); JOGAR (Combate, Sessão). Como usar fica no rodapé da barra, não no grupo de jogo.
+Ferramentas: NPC rápido, Gerador de nomes, Importar PDF. Sair é botão de rodapé, fora de FERRAMENTAS.
+
+Ações de página ficam no miolo ou no `sidePanel` da própria página (ex.: Exportar JSON/PDF e Importar JSON em Campanhas; Exportar PDF/Imprimir em Fichas; Excluir/Abrir arquivo em Documentos; combo de encontros no miolo de Combate; mapa no rail de Combate). Não promovê-las à lista FERRAMENTAS nem a menu de topo.

@@ -1,0 +1,17 @@
+{
+  "given": [
+    "Aldric", "Beren", "Cedric", "Dara", "Edwin", "Fiona", "Gareth", "Helena",
+    "Ivor", "Jora", "Kael", "Lydia", "Marcus", "Nora", "Owen", "Petra",
+    "Quentin", "Rowena", "Soren", "Tilda", "Ulric", "Vera", "Wren", "Yara",
+    "Alma", "Bruno", "Clara", "Denis", "Elsa", "Felix"
+  ],
+  "surname": [
+    "Valen", "Hart", "Stone", "Rivers", "Blackwood", "Ashford", "Greystone",
+    "Thorne", "Wycliff", "Barlow", "Hale", "Mercer", "Oakley", "Pryor",
+    "Quinn", "Redd", "Shaw", "York"
+  ],
+  "nickname": [
+    "o Bravo", "a Sábia", "o Errante", "a Vermelha", "o Calmo", "a Lâmina",
+    "dos Campos", "de Pedravale"
+  ]
+}

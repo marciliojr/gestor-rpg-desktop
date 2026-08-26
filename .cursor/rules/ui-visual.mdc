@@ -1,0 +1,29 @@
+---
+description: Paleta visual do Gestor RPG — cores suaves, modo claro azul
+alwaysApply: true
+---
+
+# Visual
+
+Modo claro permanente. Nunca usar paleta neon (amarelo `#FFD000` + preto `#111` + branco puro) nem fundo preto em todo texto.
+
+Cores em `src/gestor_rpg/ui/styles.py`:
+
+- Canvas papel frio `#E8EEF4`, superfície `#F5F8FC`
+- Texto tinta `#1B2838`, secundário `#5B6B7C`
+- Menus laterais ardósia azul `#243044`, texto gelo `#E8EEF5`
+- Destaque aço `#3D6FA3` e azul profundo `#2E5A87` (suaves)
+
+Campos no miolo: fundo claro, texto escuro. Campos dentro de laterais: ardósia elevada, texto gelo. Seleção/hover em azul aço, nunca cinza frio. Combos e labels no miolo nunca ficam brancos.
+
+```python
+# ❌ BAD
+YELLOW, BLACK = "#FFD000", "#111111"
+QLabel { background: black; color: white; }
+QComboBox { color: white; background: #F5F8FC; }
+
+# ✅ GOOD
+CANVAS, INK, SAGE = "#E8EEF4", "#1B2838", "#3D6FA3"
+QLabel { background: transparent; color: INK; }
+QComboBox { background: SURFACE; color: INK; }
+```

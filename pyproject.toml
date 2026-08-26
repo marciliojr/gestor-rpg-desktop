@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gestor-rpg"
+version = "1.0.0"
+description = "Gestor desktop para mestrar RPG (3D&T Victory e D&D 5e)"
+requires-python = ">=3.12"
+dependencies = [
+    "PySide6>=6.7.0",
+    "pymupdf>=1.24.0",
+    "pytesseract>=0.3.13",
+    "pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+packaging = ["pyinstaller>=6.0"]
+
+[project.urls]
+Homepage = "https://github.com/marciliojr/gestor-rpg-desktop"
+Changelog = "https://github.com/marciliojr/gestor-rpg-desktop/blob/main/CHANGELOG.md"
+
+[project.scripts]
+gestor-rpg = "gestor_rpg.__main__:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

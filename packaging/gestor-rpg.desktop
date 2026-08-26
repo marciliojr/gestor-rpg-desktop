@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Gestor RPG
+Comment=Mestrar RPG (3D&T Victory e D&D 5e) neste computador
+Exec=gestor-rpg
+Icon=gestor-rpg
+Terminal=false
+Categories=Game;Utility;
+StartupNotify=true

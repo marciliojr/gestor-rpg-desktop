@@ -1,0 +1,20 @@
+---
+description: Convenções do Gestor RPG desktop (produto e código)
+alwaysApply: true
+---
+
+# Gestor RPG
+
+App **1.0.0**, PySide6 + SQLite. Schema **v6** (`grid_cols`/`grid_rows` no encontro; `grid_x`/`grid_y` no combatente). UI e respostas em português. Não criar `.md` sem pedido (README/CHANGELOG e memory bank já existem). Não editar planos anexados. Commits só se o usuário pedir.
+
+Memory bank em `.cursor/memory-bank/` (brief, produto, contexto ativo, padrões, tech, progresso). Manter alinhado à versão do app.
+
+Sistemas: 3D&T Victory e D&D 5e. Fichas seguem o recorte oficial já no código. Victory: P, H, R + PA/PV/PM (sem Armadura nem PdF).
+
+Plugin: `hp_paths` (hp obrigatório; `resource` e `action` opcionais); `format_monster_preview`; `format_sheet_html`; `monster_catalog` / `generate_monster`. Victory: PV+PM+PA. Catálogo Victory: 47 desafios em `_ddt_bestiary.py` (P/H/R/PV da ficha; sem PM/PA). Catálogo D&D 5e: 109 entradas em `_dnd_bestiary.py` (tabela de 100 + fichas detalhadas do compêndio local; stats completos só onde o anexo traz CA/PV/atributos; o resto estima por ND). Não copiar bestiários copyrighted além dos compêndios que o usuário anexou.
+
+Mesa: combate com histórico de encontros e grid simples de tokens no rail direito da página Combate (sem paredes/dungeon); documentos com FTS, excluir e abrir PDF; busca FTS nas fichas; página Sessão (log, XP, tesouro); `validate_attributes` só no Salvar da ficha (auto-save não bloqueia); backup JSON `gestor-rpg-campaign-v1` e PDF da campanha na página Campanhas (inclui log de sessão e posições no grid); exportar/imprimir ficha em PDF original (não preenche ficha oficial). Empacote: `packaging/build-appimage.sh` e `packaging/build-rpm.sh` (PyInstaller).
+
+Fora do recorte: dungeon com paredes, sync, 3D&T Alpha, Tormenta20.
+
+Teste: `python3 -m pytest -q`. Smoke exige 6 páginas de mesa na nav agrupada, `toolsList` com 3 atalhos (sem Sair), Como usar e Sair no rodapé, menubar oculta.
