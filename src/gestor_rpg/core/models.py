@@ -90,6 +90,74 @@ class CharacterHit:
     rank: float
 
 
+LOCATION_KINDS: tuple[tuple[str, str], ...] = (
+    ("cidade", "Cidade"),
+    ("vila", "Vila"),
+    ("regiao", "Região"),
+    ("taverna", "Taverna"),
+    ("masmorra", "Masmorra"),
+    ("outro", "Outro"),
+)
+
+PEOPLE_ATTITUDES: tuple[tuple[str, str], ...] = (
+    ("aliado", "Aliado"),
+    ("neutro", "Neutro"),
+    ("hostil", "Hostil"),
+)
+
+ENCOUNTER_STATUSES: tuple[tuple[str, str], ...] = (
+    ("preparado", "Preparada"),
+    ("em_andamento", "Em andamento"),
+    ("encerrado", "Encerrada"),
+)
+
+
+def _label_of(options: tuple[tuple[str, str], ...], key: str) -> str:
+    return dict(options).get(key, key)
+
+
+def location_kind_label(kind: str) -> str:
+    return _label_of(LOCATION_KINDS, kind)
+
+
+def person_attitude_label(attitude: str) -> str:
+    return _label_of(PEOPLE_ATTITUDES, attitude)
+
+
+def encounter_status_label(status: str) -> str:
+    return _label_of(ENCOUNTER_STATUSES, status)
+
+
+@dataclass
+class Location:
+    id: int | None
+    uuid: str
+    campaign_id: int
+    name: str
+    kind: str = "cidade"
+    notes: str = ""
+    secrets: str = ""
+    created_at: str = ""
+    updated_at: str = ""
+
+
+@dataclass
+class Person:
+    id: int | None
+    uuid: str
+    campaign_id: int
+    location_id: int | None = None
+    character_id: int | None = None
+    name: str = ""
+    role: str = ""
+    appearance: str = ""
+    notes: str = ""
+    secrets: str = ""
+    attitude: str = "neutro"
+    created_at: str = ""
+    updated_at: str = ""
+
+
 @dataclass
 class SessionEntry:
     id: int | None
@@ -100,6 +168,7 @@ class SessionEntry:
     body: str = ""
     xp: str = ""
     treasure: str = ""
+    hooks: str = ""
     created_at: str = ""
     updated_at: str = ""
 
@@ -112,6 +181,9 @@ class Encounter:
     round: int = 1
     grid_cols: int = 12
     grid_rows: int = 8
+    location_id: int | None = None
+    notes: str = ""
+    status: str = "preparado"
     created_at: str = ""
     updated_at: str = ""
 

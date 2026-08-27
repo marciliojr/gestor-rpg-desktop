@@ -15,11 +15,11 @@ from PySide6.QtWidgets import (
 SECTIONS: list[tuple[str, str, str, list[str]]] = [
     (
         "Começar",
-        "Abra uma campanha antes de fichas, monstros, combate ou sessão.",
+        "Abra uma campanha antes de mundo, fichas, combate ou notas.",
         "O Gestor RPG guarda tudo neste computador (SQLite). Não há conta, nuvem nem sincronização entre mesas.",
         [
             "Em Campanhas, clique em Nova, dê um nome e escolha o sistema: 3D&T Victory ou D&D 5e. O sistema não muda depois de salvar.",
-            "Clique em Abrir campanha. O nome aparece na coluna esquerda e o subtítulo de cada página mostra Nome · sistema.",
+            "Clique em Abrir campanha. O nome aparece na coluna esquerda e a mesa vai para Locais — o caderno do mundo.",
             "Na próxima vez que abrir o app, a última campanha volta sozinha.",
             "Sem campanha aberta, Documentos e Dados ainda funcionam; o resto da mesa fica em espera.",
         ],
@@ -29,22 +29,43 @@ SECTIONS: list[tuple[str, str, str, list[str]]] = [
         "Três colunas fixas, sem menu de topo.",
         "Nada vai para uma barra superior. Ações de cada página ficam no miolo ou na lista da própria página.",
         [
-            "Esquerda: marca, campanha aberta, grupos MESA / PREPARAR / JOGAR, FERRAMENTAS, Como usar e Sair.",
-            "Centro: a página ativa (Campanhas, Fichas, Documentos, Monstros, Combate, Sessão ou esta ajuda).",
+            "Esquerda: marca, campanha aberta, grupos MESA / MUNDO / PREPARAR / JOGAR, FERRAMENTAS, Como usar e Sair.",
+            "Centro: a página ativa (Campanhas, Locais, Pessoas, Fichas, Documentos, Monstros, Combate, Sessão ou esta ajuda).",
             "Direita: painel de Dados (rolagens). Na página Combate, o mapa aparece acima dos dados no mesmo painel.",
-            "Listas escuras (mesas, personagens, manuais, catálogo, log) são o índice da página. A iniciativa em Combate é o painel claro.",
+            "Listas escuras (mesas, locais, elenco, personagens, manuais, catálogo, log) são o índice da página. A iniciativa em Combate é o painel claro.",
         ],
     ),
     (
         "Campanhas",
         "A mesa: nome, sistema, notas e backup.",
-        "Uma campanha é o recipiente de fichas, encontros, log de sessão e posições no mapa.",
+        "Uma campanha é o recipiente de mundo, fichas, lutas, notas de sessão e posições no mapa.",
         [
             "Nova, Salvar e Excluir ficam na lista MESAS. Abrir campanha é o botão principal dos detalhes.",
-            "Exportar JSON… grava o backup gestor-rpg-campaign-v1 (fichas, encontros, log da sessão e tokens no grid).",
-            "Exportar PDF… gera um documento da mesa (elenco, fichas, combates, sessão e manuais).",
+            "Exportar JSON… grava o backup gestor-rpg-campaign-v1 (mundo, fichas, lutas, log da sessão e tokens no grid).",
+            "Exportar PDF… gera um documento da mesa (locais, pessoas, elenco, fichas, combates, sessão e manuais).",
             "Importar JSON… lê esse backup e abre a mesa importada.",
             "Excluir apaga a campanha e tira ela de aberta, se era a atual.",
+        ],
+    ),
+    (
+        "Locais",
+        "Cidades, vilas, tavernas e outros lugares da campanha.",
+        "Cadastre o mapa mental do mundo: o que o grupo vê e o que só o mestre sabe. Não é um editor de dungeon com paredes.",
+        [
+            "Novo abre um lugar em branco. Salvar grava nome (obrigatório), tipo, descrição e segredos.",
+            "Tipos: cidade, vila, região, taverna, masmorra ou outro.",
+            "Buscar filtra a lista. Excluir tira o local; pessoas e lutas ligadas a ele ficam sem lugar, não são apagadas.",
+            "Na página Combate, cada luta pode apontar para um local daqui.",
+        ],
+    ),
+    (
+        "Pessoas",
+        "NPCs do mundo, com ou sem ficha de combate.",
+        "É o elenco da mesa: estalajadeira, guarda, vilão. Diferente de NPC rápido (gerador de ficha) e da lista Fichas (stats).",
+        [
+            "Grave nome, papel, local, atitude (aliado, neutro, hostil), aparência, notas e segredos.",
+            "Ficha é opcional: ligue a um PC/NPC/monstro já cadastrado se essa pessoa entra em combate com stats.",
+            "Buscar filtra por nome, papel ou lugar. Excluir tira só a pessoa do elenco, não apaga a ficha ligada.",
         ],
     ),
     (
@@ -81,14 +102,15 @@ SECTIONS: list[tuple[str, str, str, list[str]]] = [
     ),
     (
         "Combate",
-        "Iniciativa, pools e histórico de encontros.",
-        "Cada campanha tem encontros. O combo no topo troca o combate; Novo combate guarda o atual no histórico.",
+        "Preparar lutas, rodar iniciativa e encerrar o encontro.",
+        "Cada campanha tem lutas com situação (preparada, em andamento, encerrada), local opcional e notas. O combo no topo troca a luta; Nova luta guarda a atual no histórico.",
         [
+            "Dê um nome, escolha o local do mundo e anote terreno ou gatilho. A situação muda sozinha para em andamento ao rolar iniciativa ou avançar o turno.",
             "Adicione da lista de PERSONAGENS ou um combatente avulso pelo nome.",
             "Rolar iniciativa usa 1d20 + bônus do sistema (na ficha). Próximo turno avança o marcador e a rodada.",
             "A ficha compacta mostra uma linha por pool: PV (ou HP) atual / máximo, e PM/PA ou Recurso conforme o plugin. Dano e Cura usam a quantidade ao lado.",
             "Em D&D 5e a lista mostra HP e Recurso, nunca PM/PA. Combatente com PV 0 aparece riscado.",
-            "Excluir encontro apaga aquele combate e os combatentes dele. O app cria outro se a mesa ficar sem encontro.",
+            "Excluir luta apaga aquele combate e os combatentes dele. O app cria outro se a mesa ficar sem luta.",
         ],
     ),
     (
@@ -104,11 +126,11 @@ SECTIONS: list[tuple[str, str, str, list[str]]] = [
     ),
     (
         "Sessão",
-        "Log da mesa, XP e tesouro.",
-        "Cada entrada pode apontar para um encontro do histórico de Combate.",
+        "Notas da partida, XP, tesouro e ganchos da próxima.",
+        "Cada entrada pode apontar para uma luta do histórico de Combate.",
         [
-            "Nova começa um registro em branco. Salvar grava título (obrigatório), texto, XP e tesouro.",
-            "Excluir tira a entrada do log. O backup da campanha inclui esse log.",
+            "Nova começa um registro em branco. Salvar grava título (obrigatório), o que aconteceu, XP, tesouro e o que preparar na próxima sessão.",
+            "Excluir tira a nota. O backup da campanha inclui esse caderno.",
         ],
     ),
     (
@@ -124,9 +146,9 @@ SECTIONS: list[tuple[str, str, str, list[str]]] = [
     (
         "Ferramentas",
         "Atalhos globais, à esquerda, abaixo de JOGAR.",
-        "Não repetem as ações de cada página (exportar ficha, mapa, combo de encontro ficam onde a mesa acontece).",
+        "Não repetem as ações de cada página (exportar ficha, mapa, combo de luta ficam onde a mesa acontece).",
         [
-            "NPC rápido… gera nome, motivação, gancho e ficha do sistema escolhido. Salvar na campanha exige mesa aberta no mesmo sistema.",
+            "NPC rápido… gera nome, motivação, gancho e ficha do sistema escolhido. Salvar na campanha exige mesa aberta no mesmo sistema. Para o elenco do mundo (sem stats), use Pessoas.",
             "Gerador de nomes… sorteia Medieval, Élfico, Anão ou Oriental (completo, prenome, sobrenome ou apelido) e copia o selecionado.",
             "Importar PDF… é o mesmo fluxo da página Documentos.",
             "Como usar abre esta tela. Sair fica no rodapé da barra, fora das ferramentas.",
@@ -182,7 +204,7 @@ class HelpPage(QWidget):
         title = QLabel("Como usar")
         title.setObjectName("pageTitle")
         root.addWidget(title)
-        hint = QLabel("Gestor RPG 1.0  ·  mesa local  ·  3D&T Victory e D&D 5e")
+        hint = QLabel("Gestor RPG 1.1  ·  mesa local  ·  3D&T Victory e D&D 5e")
         hint.setObjectName("pageSubtitle")
         root.addWidget(hint)
 

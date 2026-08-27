@@ -272,6 +272,76 @@ def _purge_removed_systems(conn: sqlite3.Connection) -> None:
     conn.execute(f"DELETE FROM rpg_systems WHERE id IN ({placeholders})", ids)
 
 
+def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (name,),
+    ).fetchone()
+    return row is not None
+
+
+def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(str(row[1]) == column for row in rows)
+
+
+def _apply_v7(conn: sqlite3.Connection) -> None:
+    if not _table_exists(conn, "locations"):
+        conn.executescript(
+            """
+            CREATE TABLE locations (
+                id           INTEGER PRIMARY KEY,
+                uuid         TEXT NOT NULL UNIQUE,
+                campaign_id  INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+                name         TEXT NOT NULL,
+                kind         TEXT NOT NULL DEFAULT 'cidade',
+                notes        TEXT NOT NULL DEFAULT '',
+                secrets      TEXT NOT NULL DEFAULT '',
+                created_at   TEXT NOT NULL,
+                updated_at   TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_loc_campaign ON locations(campaign_id);
+            """
+        )
+    if not _table_exists(conn, "people"):
+        conn.executescript(
+            """
+            CREATE TABLE people (
+                id            INTEGER PRIMARY KEY,
+                uuid          TEXT NOT NULL UNIQUE,
+                campaign_id   INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+                location_id   INTEGER REFERENCES locations(id) ON DELETE SET NULL,
+                character_id  INTEGER REFERENCES characters(id) ON DELETE SET NULL,
+                name          TEXT NOT NULL,
+                role          TEXT NOT NULL DEFAULT '',
+                appearance    TEXT NOT NULL DEFAULT '',
+                notes         TEXT NOT NULL DEFAULT '',
+                secrets       TEXT NOT NULL DEFAULT '',
+                attitude      TEXT NOT NULL DEFAULT 'neutro',
+                created_at    TEXT NOT NULL,
+                updated_at    TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_people_campaign ON people(campaign_id);
+            CREATE INDEX IF NOT EXISTS idx_people_location ON people(location_id);
+            """
+        )
+    if not _column_exists(conn, "encounters", "location_id"):
+        conn.execute(
+            "ALTER TABLE encounters ADD COLUMN location_id INTEGER "
+            "REFERENCES locations(id) ON DELETE SET NULL"
+        )
+    if not _column_exists(conn, "encounters", "notes"):
+        conn.execute("ALTER TABLE encounters ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
+    if not _column_exists(conn, "encounters", "status"):
+        conn.execute(
+            "ALTER TABLE encounters ADD COLUMN status TEXT NOT NULL DEFAULT 'preparado'"
+        )
+    if not _column_exists(conn, "session_entries", "hooks"):
+        conn.execute(
+            "ALTER TABLE session_entries ADD COLUMN hooks TEXT NOT NULL DEFAULT ''"
+        )
+
+
 def apply_migrations(conn: sqlite3.Connection) -> None:
     version = _current_version(conn)
     if version < 1:
@@ -305,4 +375,8 @@ def apply_migrations(conn: sqlite3.Connection) -> None:
     if version < 6:
         _purge_removed_systems(conn)
         conn.execute("UPDATE schema_version SET version = 6")
+        conn.commit()
+    if version < 7:
+        _apply_v7(conn)
+        conn.execute("UPDATE schema_version SET version = 7")
         conn.commit()

@@ -80,6 +80,23 @@ def test_write_campaign_pdf_contains_roster(tmp_path):
                     "body": "Os heróis chegaram à torre.",
                     "xp": "300",
                     "treasure": "2 PO",
+                    "hooks": "A carta selada",
+                }
+            ],
+            "locations": [
+                {
+                    "uuid": "loc-1",
+                    "name": "Porto Seguro",
+                    "kind": "cidade",
+                    "notes": "Porto comercial",
+                }
+            ],
+            "people": [
+                {
+                    "name": "Mara",
+                    "role": "Estalajadeira",
+                    "attitude": "aliado",
+                    "location_uuid": "loc-1",
                 }
             ],
             "documents": [{"doc_type": "manual", "title": "Livro básico"}],
@@ -96,4 +113,6 @@ def test_write_campaign_pdf_contains_roster(tmp_path):
     assert "Kael" in text
     assert "Emboscada" in text
     assert "Sessão 1" in text
+    assert "Porto Seguro" in text
+    assert "Mara" in text
     app.processEvents()
