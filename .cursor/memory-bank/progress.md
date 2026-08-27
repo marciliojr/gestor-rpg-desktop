@@ -17,6 +17,7 @@
 - Combate com histórico e grid de tokens
 - Visual claro, botões com espaço para rótulo, estados vazios
 - Documentação README + CHANGELOG; memory bank nesta pasta
+- Site GitHub Pages do projeto
 - GitHub: https://github.com/marciliojr/gestor-rpg-desktop — release v1.0.0 com AppImage
 - Regras Cursor: `projeto-gestor-rpg.mdc`, `layout-laterais.mdc`, `ui-visual.mdc`
 

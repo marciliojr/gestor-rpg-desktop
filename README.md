@@ -2,6 +2,8 @@
 
 Aplicativo desktop **1.1** para mestrar RPG neste computador: campanhas, mundo (cidades e pessoas), fichas, documentos, monstros, combate com mapa simples e notas de sessão. Sistemas: **3D&T Victory** e **D&D 5e**. Sem conta, nuvem ou sincronização.
 
+Site: [marciliojr.github.io/gestor-rpg-desktop](https://marciliojr.github.io/gestor-rpg-desktop/).
+
 ## Sistemas
 
 - **3D&T Victory** — ficha P, H, R + PV/PM/PA (sem Armadura nem PdF); catálogo de 47 desafios; combate com PV, PM e PA

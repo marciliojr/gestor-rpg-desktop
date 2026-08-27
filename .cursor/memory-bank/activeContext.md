@@ -20,6 +20,7 @@ Hover da nav, selo de rodada, iniciativa “clara” além do que já está, car
 - Branch padrão: **main** (não há `master`)
 - Release 1.0.0 (AppImage): https://github.com/marciliojr/gestor-rpg-desktop/releases/tag/v1.0.0
 - Release 1.1.0: https://github.com/marciliojr/gestor-rpg-desktop/releases/tag/v1.1.0
+- GitHub Pages: https://marciliojr.github.io/gestor-rpg-desktop/
 - Commits só a pedido.
 
 ## Testes

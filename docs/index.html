@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestor RPG — mesa local para mestrar</title>
+    <meta
+      name="description"
+      content="Aplicativo desktop para mestrar RPG neste computador: campanhas, mundo, fichas, combate e notas. 3D&T Victory e D&D 5e."
+    />
+    <link rel="icon" href="gestor-rpg.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="bar-inner">
+        <a class="brand" href="#topo">
+          <img src="gestor-rpg.svg" alt="" />
+          GESTOR RPG
+        </a>
+        <nav class="nav">
+          <a href="#baixar">Baixar</a>
+          <a href="#mesa">A mesa</a>
+          <a href="#projetos">Projetos</a>
+          <a href="https://github.com/marciliojr/gestor-rpg-desktop">Código</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="topo">
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <h1>A mesa do mestre, neste computador.</h1>
+            <p class="lead">
+              Campanhas, cidades, pessoas, fichas, monstros, lutas e notas da
+              partida. Sem conta, nuvem ou sincronização. Sistemas:
+              <strong>3D&amp;T Victory</strong> e <strong>D&amp;D 5e</strong>.
+            </p>
+            <div class="actions">
+              <a class="btn btn-primary" href="#baixar">Baixar 1.1.0</a>
+              <a
+                class="btn"
+                href="https://github.com/marciliojr/gestor-rpg-desktop"
+                >Ver no GitHub</a
+              >
+            </div>
+            <p class="meta">
+              PySide6 + SQLite · Linux, Windows e macOS · schema v7
+            </p>
+          </div>
+          <aside class="card" id="baixar">
+            <h2>Download</h2>
+            <ul class="os-list">
+              <li>
+                <a
+                  href="https://github.com/marciliojr/gestor-rpg-desktop/releases/download/v1.1.0/GestorRPG-1.1.0-linux-x64.AppImage"
+                  >Linux
+                  <span>AppImage x64 — marque como executável</span></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/marciliojr/gestor-rpg-desktop/releases/download/v1.1.0/GestorRPG-1.1.0-windows-x64.zip"
+                  >Windows <span>Zip com GestorRPG.exe</span></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/marciliojr/gestor-rpg-desktop/releases/download/v1.1.0/GestorRPG-1.1.0-macos-arm64.zip"
+                  >macOS <span>Zip com Gestor RPG.app (Apple Silicon)</span></a
+                >
+              </li>
+            </ul>
+            <p class="meta">
+              Notas e outros arquivos na
+              <a href="https://github.com/marciliojr/gestor-rpg-desktop/releases/tag/v1.1.0"
+                >release v1.1.0</a
+              >.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section id="mesa">
+        <div class="wrap">
+          <h2>O que a mesa cobre</h2>
+          <div class="grid">
+            <article>
+              <h3>Mundo</h3>
+              <p>
+                Cidades, vilas, tavernas e o elenco da campanha: papel, atitude,
+                segredos do mestre.
+              </p>
+            </article>
+            <article>
+              <h3>Preparar</h3>
+              <p>
+                Fichas Victory e 5e, manuais em PDF com busca, catálogo de
+                monstros.
+              </p>
+            </article>
+            <article>
+              <h3>Jogar</h3>
+              <p>
+                Lutas com iniciativa, mapa de tokens, PV/recursos e o caderno da
+                sessão (XP, tesouro, ganchos).
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="projetos">
+        <div class="wrap">
+          <h2>Outros projetos públicos</h2>
+          <p class="lead" style="margin-bottom: 16px">
+            Repositórios abertos de
+            <a href="https://github.com/marciliojr">Marcilio Jr</a>.
+          </p>
+          <div class="projects">
+            <a href="https://github.com/marciliojr/triple-triad">
+              <strong>Triple Triad</strong>
+              <span>O jogo de cartas de Final Fantasy VIII, em Java.</span>
+            </a>
+            <a href="https://github.com/marciliojr/triple-triad-html5">
+              <strong>Triple Triad HTML5</strong>
+              <span>A mesma ideia, no navegador.</span>
+            </a>
+            <a href="https://github.com/marciliojr/biblia">
+              <strong>Bíblia</strong>
+              <span>Texto em XML, SQL e JSON.</span>
+            </a>
+            <a href="https://github.com/marciliojr/brModelo">
+              <strong>brModelo</strong>
+              <span>Ferramenta de modelagem (fork / espelho do 3.2).</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        Gestor RPG é software local, sem nuvem.
+        <a href="https://github.com/marciliojr/gestor-rpg-desktop">Código-fonte</a>
+        ·
+        <a href="https://github.com/marciliojr/gestor-rpg-desktop/blob/main/CHANGELOG.md"
+          >Changelog</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

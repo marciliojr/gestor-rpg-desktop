@@ -3,6 +3,12 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 Versão do aplicativo (semver). O schema SQLite desta linha é **v7**.
 
+## [Unreleased]
+
+### Adicionado
+
+- GitHub Pages do projeto (`docs/`): download da 1.1.0 e lista dos repositórios públicos.
+
 ## [1.1.0] — 2026-08-27
 
 A mesa passa a servir o caderno do mestre: mundo, pessoas e lutas com situação, sem sair do recorte Victory + 5e.
