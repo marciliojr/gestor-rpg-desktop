@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gestor-rpg"
-version = "1.0.0"
+version = "1.1.0"
 description = "Gestor desktop para mestrar RPG (3D&T Victory e D&D 5e)"
 requires-python = ">=3.12"
 dependencies = [

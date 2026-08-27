@@ -1,9 +1,9 @@
 # Project brief — Gestor RPG
 
-App desktop local para o mestre: campanhas, fichas, manuais em PDF, catálogo de monstros, combate com grid simples e log de sessão.
+App desktop local para o mestre: campanhas, mundo (locais e pessoas), fichas, manuais em PDF, catálogo de monstros, combate com grid simples e notas de sessão.
 
-**Versão do produto:** 1.0.0 (2026-08-26)  
-**Schema SQLite:** v6 (não há v7; “versão sete” do recorte virou o 1.0)
+**Versão do produto:** 1.1.0 (2026-08-27)  
+**Schema SQLite:** v7 (`locations`, `people`; luta com local/notas/status; ganchos na sessão)
 
 ## Sistemas no recorte
 
@@ -16,6 +16,6 @@ Fora: dungeon com paredes, sync, 3D&T Alpha, Tormenta20.
 
 PySide6 + SQLite (FTS5). UI e respostas em português. Sem QMenuBar; três colunas.
 
-## Entrega 1.0
+## Entrega 1.1
 
-Binário congelado (PyInstaller / AppImage / RPM), README, CHANGELOG, repositório GitHub.
+Caderno do mestre no app 1.0: locais, pessoas, lutas com situação, notas da partida. README, CHANGELOG e memory bank alinhados. Binários Linux, Windows e macOS na release GitHub.

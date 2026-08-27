@@ -4,6 +4,7 @@ import json
 import re
 from html import escape as html_escape
 
+from gestor_rpg.core.models import encounter_status_label, location_kind_label, person_attitude_label
 from gestor_rpg.ui.styles import CANVAS, INK, LINE, MUTED, SAGE, SAGE_SOFT
 
 KIND_LABELS = {"pc": "Personagem", "npc": "NPC", "monster": "Monstro"}
@@ -160,6 +161,8 @@ def format_campaign_html(payload: dict, plugin=None) -> str:
     system = system or str(info.get("system_slug") or "")
     notes = str(info.get("notes") or "").strip()
     characters = [item for item in (payload.get("characters") or []) if isinstance(item, dict)]
+    locations = [item for item in (payload.get("locations") or []) if isinstance(item, dict)]
+    people = [item for item in (payload.get("people") or []) if isinstance(item, dict)]
     encounters = [item for item in (payload.get("encounters") or []) if isinstance(item, dict)]
     session_entries = [
         item for item in (payload.get("session_entries") or []) if isinstance(item, dict)
@@ -205,6 +208,55 @@ def format_campaign_html(payload: dict, plugin=None) -> str:
     else:
         parts.append(section("Personagens", "<p class='empty'>Nenhuma ficha.</p>"))
 
+    if locations:
+        loc_rows = [
+            (
+                "<tr>"
+                f"<td>{esc(location_kind_label(str(item.get('kind') or '')))}</td>"
+                f"<td>{esc(item.get('name'))}</td>"
+                f"<td>{esc(item.get('notes'))}</td>"
+                "</tr>"
+            )
+            for item in locations
+        ]
+        parts.append(
+            section(
+                "Locais",
+                "<table class='list'><tr><th>Tipo</th><th>Nome</th><th>Descrição</th></tr>"
+                + "".join(loc_rows)
+                + "</table>",
+            )
+        )
+    else:
+        parts.append(section("Locais", "<p class='empty'>Nenhum local.</p>"))
+
+    if people:
+        loc_name = {
+            str(item.get("uuid") or ""): str(item.get("name") or "")
+            for item in locations
+        }
+        people_rows = []
+        for item in people:
+            place = loc_name.get(str(item.get("location_uuid") or ""), "")
+            people_rows.append(
+                "<tr>"
+                f"<td>{esc(item.get('name'))}</td>"
+                f"<td>{esc(item.get('role'))}</td>"
+                f"<td>{esc(place)}</td>"
+                f"<td>{esc(person_attitude_label(str(item.get('attitude') or '')))}</td>"
+                "</tr>"
+            )
+        parts.append(
+            section(
+                "Pessoas",
+                "<table class='list'><tr><th>Nome</th><th>Papel</th><th>Local</th><th>Atitude</th></tr>"
+                + "".join(people_rows)
+                + "</table>",
+            )
+        )
+    else:
+        parts.append(section("Pessoas", "<p class='empty'>Nenhuma pessoa.</p>"))
+
     encounter_blocks: list[str] = []
     for encounter in encounters:
         combatants = [
@@ -212,6 +264,7 @@ def format_campaign_html(payload: dict, plugin=None) -> str:
         ]
         header = (
             f"<p class='headline'>{esc(encounter.get('name'))}  ·  "
+            f"{esc(encounter_status_label(str(encounter.get('status') or 'preparado')))}  ·  "
             f"rodada {esc(encounter.get('round'))}  ·  "
             f"mapa {esc(encounter.get('grid_cols'))}×{esc(encounter.get('grid_rows'))}</p>"
         )
@@ -251,6 +304,7 @@ def format_campaign_html(payload: dict, plugin=None) -> str:
                     ("XP", entry.get("xp")),
                     ("Tesouro", entry.get("treasure")),
                     ("O que aconteceu", entry.get("body")),
+                    ("Próxima sessão", entry.get("hooks")),
                 ],
                 skip_empty=True,
             )

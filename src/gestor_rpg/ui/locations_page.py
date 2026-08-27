@@ -18,29 +18,25 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gestor_rpg.core.models import Campaign, SessionEntry
+from gestor_rpg.core.models import LOCATION_KINDS, Campaign, Location, location_kind_label
 from gestor_rpg.db import queries
 from gestor_rpg.db.connection import Database
 from gestor_rpg.ui.styles import EMPTY_NO_CAMPAIGN, make_empty_hint, set_empty_state, set_role
 
 
-def _date_label(iso: str) -> str:
-    return iso[:10] if iso else ""
-
-
-class SessionPage(QWidget):
+class LocationsPage(QWidget):
     def __init__(self, db: Database, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.db = db
         self.campaign: Campaign | None = None
-        self._entries: list[SessionEntry] = []
+        self._items: list[Location] = []
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        title = QLabel("Sessão")
+        title = QLabel("Locais")
         title.setObjectName("pageTitle")
         root.addWidget(title)
-        self.hint = QLabel("Abra uma campanha para anotar a partida.")
+        self.hint = QLabel("Abra uma campanha para cadastrar cidades e outros lugares.")
         self.hint.setObjectName("pageSubtitle")
         root.addWidget(self.hint)
 
@@ -50,9 +46,13 @@ class SessionPage(QWidget):
         left_l = QVBoxLayout(left)
         left_l.setContentsMargins(12, 12, 12, 12)
         left_l.setSpacing(10)
-        section = QLabel("NOTAS DA PARTIDA")
+        section = QLabel("MUNDO")
         section.setObjectName("sectionTitle")
         left_l.addWidget(section)
+        self.search = QLineEdit()
+        self.search.setPlaceholderText("Buscar…")
+        self.search.textChanged.connect(self._rebuild_list)
+        left_l.addWidget(self.search)
         self.list = QListWidget()
         self.list.currentRowChanged.connect(self._on_row)
         self.list_empty = make_empty_hint(EMPTY_NO_CAMPAIGN)
@@ -61,7 +61,7 @@ class SessionPage(QWidget):
         self.list.hide()
         btns = QHBoxLayout()
         btns.setSpacing(8)
-        self.btn_new = QPushButton("Nova")
+        self.btn_new = QPushButton("Novo")
         self.btn_save = QPushButton("Salvar")
         self.btn_delete = QPushButton("Excluir")
         set_role(self.btn_save, "primary")
@@ -77,29 +77,24 @@ class SessionPage(QWidget):
         form_box = QWidget()
         form_l = QVBoxLayout(form_box)
         form_l.setContentsMargins(12, 0, 0, 0)
-        detail = QLabel("ENTRADA")
+        detail = QLabel("LOCAL")
         detail.setObjectName("sectionTitle")
         form_l.addWidget(detail)
         form = QFormLayout()
         form.setHorizontalSpacing(12)
         form.setVerticalSpacing(10)
-        self.title = QLineEdit()
-        self.encounter = QComboBox()
-        self.xp = QLineEdit()
-        self.xp.setPlaceholderText("300 cada, 1 nível…")
-        self.treasure = QLineEdit()
-        self.treasure.setPlaceholderText("2 PO, poção de cura…")
-        self.body = QTextEdit()
-        self.body.setPlaceholderText("O que aconteceu na mesa…")
-        self.hooks = QTextEdit()
-        self.hooks.setPlaceholderText("Ganchos, fios soltos, o que preparar para a próxima…")
-        self.hooks.setMaximumHeight(110)
-        form.addRow("Título", self.title)
-        form.addRow("Luta", self.encounter)
-        form.addRow("XP", self.xp)
-        form.addRow("Tesouro", self.treasure)
-        form.addRow("O que aconteceu", self.body)
-        form.addRow("Próxima sessão", self.hooks)
+        self.name = QLineEdit()
+        self.kind = QComboBox()
+        for key, label in LOCATION_KINDS:
+            self.kind.addItem(label, key)
+        self.notes = QTextEdit()
+        self.notes.setPlaceholderText("O que o grupo vê e ouve neste lugar…")
+        self.secrets = QTextEdit()
+        self.secrets.setPlaceholderText("O que só o mestre sabe…")
+        form.addRow("Nome", self.name)
+        form.addRow("Tipo", self.kind)
+        form.addRow("Descrição", self.notes)
+        form.addRow("Segredos", self.secrets)
         form_l.addLayout(form, 1)
         splitter.addWidget(form_box)
         splitter.setStretchFactor(0, 1)
@@ -110,10 +105,10 @@ class SessionPage(QWidget):
     def set_campaign(self, campaign: Campaign | None) -> None:
         self.campaign = campaign
         if campaign is None:
-            self.hint.setText("Abra uma campanha para anotar a partida.")
+            self.hint.setText("Abra uma campanha para cadastrar cidades e outros lugares.")
             self._set_enabled(False)
-            self.list.clear()
-            self._entries = []
+            self._items = []
+            self.search.clear()
             self._clear_form()
             self.list_empty.setText(EMPTY_NO_CAMPAIGN)
             set_empty_state(self.list, self.list_empty, True)
@@ -125,80 +120,83 @@ class SessionPage(QWidget):
     def reload(self, select_id: int | None = None) -> None:
         if self.campaign is None:
             return
-        self._fill_encounters()
-        self._entries = queries.list_session_entries(self.db.conn, self.campaign.id)
+        self._items = queries.list_locations(self.db.conn, self.campaign.id)
+        self._rebuild_list(select_id=select_id)
+
+    def _visible(self) -> list[Location]:
+        needle = self.search.text().strip().lower()
+        if not needle:
+            return list(self._items)
+        return [
+            item
+            for item in self._items
+            if needle in item.name.lower()
+            or needle in item.kind.lower()
+            or needle in location_kind_label(item.kind).lower()
+            or needle in item.notes.lower()
+        ]
+
+    def _rebuild_list(self, _text: str = "", *, select_id: int | None = None) -> None:
+        visible = self._visible()
+        current_id = select_id
+        if current_id is None:
+            current = self.current()
+            current_id = current.id if current else None
         self.list.blockSignals(True)
         self.list.clear()
         selected = 0
-        for i, entry in enumerate(self._entries):
-            stamp = _date_label(entry.updated_at)
-            label = f"{entry.title}" if not stamp else f"{entry.title}\n{stamp}"
-            self.list.addItem(QListWidgetItem(label))
-            if select_id is not None and entry.id == select_id:
+        for i, item in enumerate(visible):
+            kind = location_kind_label(item.kind)
+            self.list.addItem(QListWidgetItem(f"{item.name}\n{kind}"))
+            if current_id is not None and item.id == current_id:
                 selected = i
         self.list.blockSignals(False)
-        self.list_empty.setText("Nenhuma nota ainda")
-        set_empty_state(self.list, self.list_empty, not self._entries)
-        if self._entries:
+        empty = "Nenhum local ainda" if not self._items else "Nada corresponde à busca"
+        self.list_empty.setText(empty)
+        set_empty_state(self.list, self.list_empty, not visible)
+        if visible:
             self.list.setCurrentRow(selected)
         else:
             self._clear_form()
 
-    def _fill_encounters(self, selected_id: int | None = None) -> None:
-        current = selected_id
-        self.encounter.blockSignals(True)
-        self.encounter.clear()
-        self.encounter.addItem("Nenhum", None)
-        if self.campaign is not None:
-            for item in queries.list_encounters(self.db.conn, self.campaign.id):
-                self.encounter.addItem(item.name, item.id)
-        if current is not None:
-            index = self.encounter.findData(current)
-            self.encounter.setCurrentIndex(index if index >= 0 else 0)
-        else:
-            self.encounter.setCurrentIndex(0)
-        self.encounter.blockSignals(False)
-
     def _set_enabled(self, enabled: bool) -> None:
         for widget in (
             self.list,
+            self.search,
             self.btn_new,
             self.btn_save,
             self.btn_delete,
-            self.title,
-            self.encounter,
-            self.xp,
-            self.treasure,
-            self.body,
-            self.hooks,
+            self.name,
+            self.kind,
+            self.notes,
+            self.secrets,
         ):
             widget.setEnabled(enabled)
 
-    def current(self) -> SessionEntry | None:
+    def current(self) -> Location | None:
+        visible = self._visible()
         row = self.list.currentRow()
-        if 0 <= row < len(self._entries):
-            return self._entries[row]
+        if 0 <= row < len(visible):
+            return visible[row]
         return None
 
     def _on_row(self, row: int) -> None:
-        if not (0 <= row < len(self._entries)):
+        visible = self._visible()
+        if not (0 <= row < len(visible)):
             self._clear_form()
             return
-        entry = self._entries[row]
-        self.title.setText(entry.title)
-        self.body.setPlainText(entry.body)
-        self.xp.setText(entry.xp)
-        self.treasure.setText(entry.treasure)
-        self.hooks.setPlainText(entry.hooks)
-        self._fill_encounters(entry.encounter_id)
+        item = visible[row]
+        self.name.setText(item.name)
+        index = self.kind.findData(item.kind)
+        self.kind.setCurrentIndex(index if index >= 0 else 0)
+        self.notes.setPlainText(item.notes)
+        self.secrets.setPlainText(item.secrets)
 
     def _clear_form(self) -> None:
-        self.title.clear()
-        self.body.clear()
-        self.xp.clear()
-        self.treasure.clear()
-        self.hooks.clear()
-        self._fill_encounters()
+        self.name.clear()
+        self.kind.setCurrentIndex(0)
+        self.notes.clear()
+        self.secrets.clear()
 
     def _new(self) -> None:
         if self.campaign is None:
@@ -208,41 +206,39 @@ class SessionPage(QWidget):
         self.list.setCurrentRow(-1)
         self.list.blockSignals(False)
         self._clear_form()
-        self.title.setFocus()
+        self.name.setFocus()
 
     def _save(self) -> None:
         if self.campaign is None:
             return
-        title = self.title.text().strip()
-        if not title:
-            QMessageBox.warning(self, "Sessão", "Informe um título.")
+        name = self.name.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Locais", "Informe o nome do lugar.")
             return
         current = self.current()
-        encounter_id = self.encounter.currentData()
+        kind = str(self.kind.currentData() or "cidade")
+        notes = self.notes.toPlainText()
+        secrets = self.secrets.toPlainText()
         if current is None:
-            created = queries.create_session_entry(
+            created = queries.create_location(
                 self.db.conn,
-                SessionEntry(
+                Location(
                     id=None,
                     uuid=str(uuid.uuid4()),
                     campaign_id=self.campaign.id,
-                    encounter_id=encounter_id,
-                    title=title,
-                    body=self.body.toPlainText(),
-                    xp=self.xp.text().strip(),
-                    treasure=self.treasure.text().strip(),
-                    hooks=self.hooks.toPlainText(),
+                    name=name,
+                    kind=kind,
+                    notes=notes,
+                    secrets=secrets,
                 ),
             )
             self.reload(created.id)
         else:
-            current.title = title
-            current.body = self.body.toPlainText()
-            current.xp = self.xp.text().strip()
-            current.treasure = self.treasure.text().strip()
-            current.hooks = self.hooks.toPlainText()
-            current.encounter_id = encounter_id
-            queries.update_session_entry(self.db.conn, current)
+            current.name = name
+            current.kind = kind
+            current.notes = notes
+            current.secrets = secrets
+            queries.update_location(self.db.conn, current)
             self.reload(current.id)
 
     def _delete(self) -> None:
@@ -250,9 +246,9 @@ class SessionPage(QWidget):
         if current is None or current.id is None:
             return
         if (
-            QMessageBox.question(self, "Excluir", f"Excluir «{current.title}»?")
+            QMessageBox.question(self, "Excluir", f"Excluir «{current.name}»?")
             != QMessageBox.StandardButton.Yes
         ):
             return
-        queries.delete_session_entry(self.db.conn, current.id)
+        queries.delete_location(self.db.conn, current.id)
         self.reload()

@@ -17,11 +17,19 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QSplitter,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
-from gestor_rpg.core.models import Campaign, Character, Combatant, Encounter
+from gestor_rpg.core.models import (
+    ENCOUNTER_STATUSES,
+    Campaign,
+    Character,
+    Combatant,
+    Encounter,
+    encounter_status_label,
+)
 from gestor_rpg.core.plugin import read_pool
 from gestor_rpg.core.registry import PluginRegistry
 from gestor_rpg.db import queries
@@ -85,13 +93,14 @@ class CombatPage(QWidget):
         self._roster: list[Character] = []
         self._combatants: list[Combatant] = []
         self._current: Combatant | None = None
+        self._filling = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         title = QLabel("Combate")
         title.setObjectName("pageTitle")
         root.addWidget(title)
-        self.hint = QLabel("Abra uma campanha para controlar o combate.")
+        self.hint = QLabel("Abra uma campanha para preparar e rodar as lutas.")
         self.hint.setObjectName("pageSubtitle")
         root.addWidget(self.hint)
 
@@ -104,8 +113,8 @@ class CombatPage(QWidget):
         self.encounter_box.currentIndexChanged.connect(self._on_encounter_chosen)
         self.btn_next = QPushButton("Próximo turno")
         self.btn_init = QPushButton("Rolar iniciativa")
-        self.btn_new = QPushButton("Novo combate")
-        self.btn_delete_encounter = QPushButton("Excluir encontro")
+        self.btn_new = QPushButton("Nova luta")
+        self.btn_delete_encounter = QPushButton("Excluir luta")
         set_role(self.btn_next, "primary")
         set_role(self.btn_delete_encounter, "quiet")
         self.btn_next.clicked.connect(self._next_turn)
@@ -113,9 +122,36 @@ class CombatPage(QWidget):
         self.btn_new.clicked.connect(self._new_encounter)
         self.btn_delete_encounter.clicked.connect(self._delete_encounter)
         top.addWidget(self.round_label)
-        top.addWidget(QLabel("Encontro"))
+        top.addWidget(QLabel("Luta"))
         top.addWidget(self.encounter_box, 1)
         root.addLayout(top)
+        meta = QGridLayout()
+        meta.setHorizontalSpacing(8)
+        meta.setVerticalSpacing(8)
+        self.fight_name = QLineEdit()
+        self.fight_name.setPlaceholderText("Nome da luta")
+        self.fight_name.editingFinished.connect(self._persist_fight_meta)
+        self.fight_location = QComboBox()
+        self.fight_location.currentIndexChanged.connect(self._persist_fight_meta)
+        self.fight_status = QComboBox()
+        for key, label in ENCOUNTER_STATUSES:
+            self.fight_status.addItem(label, key)
+        self.fight_status.currentIndexChanged.connect(self._persist_fight_meta)
+        meta.addWidget(QLabel("Nome"), 0, 0)
+        meta.addWidget(self.fight_name, 0, 1)
+        meta.addWidget(QLabel("Local"), 0, 2)
+        meta.addWidget(self.fight_location, 0, 3)
+        meta.addWidget(QLabel("Situação"), 1, 0)
+        meta.addWidget(self.fight_status, 1, 1)
+        self.fight_notes = QTextEdit()
+        self.fight_notes.setPlaceholderText("Terreno, gatilho, o que o grupo não viu ainda…")
+        self.fight_notes.setMaximumHeight(72)
+        self.fight_notes.setTabChangesFocus(True)
+        meta.addWidget(QLabel("Notas"), 1, 2)
+        meta.addWidget(self.fight_notes, 1, 3)
+        meta.setColumnStretch(1, 1)
+        meta.setColumnStretch(3, 2)
+        root.addLayout(meta)
         actions = QGridLayout()
         actions.setHorizontalSpacing(8)
         actions.setVerticalSpacing(8)
@@ -324,7 +360,7 @@ class CombatPage(QWidget):
         self.campaign = campaign
         self.encounter = None
         if campaign is None:
-            self.hint.setText("Abra uma campanha para controlar o combate.")
+            self.hint.setText("Abra uma campanha para preparar e rodar as lutas.")
             self._set_enabled(False)
             self.roster.clear()
             self.order.clear()
@@ -334,6 +370,7 @@ class CombatPage(QWidget):
             self.encounter_box.blockSignals(True)
             self.encounter_box.clear()
             self.encounter_box.blockSignals(False)
+            self._fill_fight_form(None)
             self.grid.set_board(12, 8, [])
             self.roster_empty.setText(EMPTY_NO_CAMPAIGN)
             self.order_empty.setText(EMPTY_NO_CAMPAIGN)
@@ -356,7 +393,13 @@ class CombatPage(QWidget):
             )
         self.roster_empty.setText("Nenhum personagem na campanha")
         set_empty_state(self.roster, self.roster_empty, not self._roster)
-        self.encounter = queries.get_or_create_encounter(self.db.conn, self.campaign.id)
+        if self.encounter is None or self.encounter.id is None:
+            self.encounter = queries.get_or_create_encounter(self.db.conn, self.campaign.id)
+        else:
+            loaded = queries.get_encounter(self.db.conn, self.encounter.id)
+            self.encounter = loaded or queries.get_or_create_encounter(
+                self.db.conn, self.campaign.id
+            )
         self._fill_encounters()
         self._reload_combatants()
 
@@ -369,8 +412,7 @@ class CombatPage(QWidget):
         self.encounter_box.clear()
         selected = 0
         for index, encounter in enumerate(encounters):
-            label = f"{encounter.name}  ·  rodada {encounter.round}"
-            self.encounter_box.addItem(label, encounter.id)
+            self.encounter_box.addItem(self._encounter_label(encounter), encounter.id)
             if encounter.id == current_id:
                 selected = index
         self.encounter_box.setCurrentIndex(selected)
@@ -378,8 +420,59 @@ class CombatPage(QWidget):
         if encounters:
             chosen = encounters[selected]
             self.encounter = queries.get_encounter(self.db.conn, chosen.id or 0) or chosen
+        self._fill_fight_form(self.encounter)
+
+    def _encounter_label(self, encounter: Encounter) -> str:
+        status = encounter_status_label(encounter.status)
+        return f"{encounter.name}  ·  {status}  ·  rodada {encounter.round}"
+
+    def _fill_locations(self, selected_id: int | None = None) -> None:
+        self.fight_location.blockSignals(True)
+        self.fight_location.clear()
+        self.fight_location.addItem("Nenhum", None)
+        if self.campaign is not None:
+            for item in queries.list_locations(self.db.conn, self.campaign.id):
+                self.fight_location.addItem(item.name, item.id)
+        if selected_id is not None:
+            index = self.fight_location.findData(selected_id)
+            self.fight_location.setCurrentIndex(index if index >= 0 else 0)
+        else:
+            self.fight_location.setCurrentIndex(0)
+        self.fight_location.blockSignals(False)
+
+    def _fill_fight_form(self, encounter: Encounter | None) -> None:
+        self._filling = True
+        if encounter is None:
+            self.fight_name.clear()
+            self._fill_locations()
+            self.fight_status.setCurrentIndex(0)
+            self.fight_notes.clear()
+            self._filling = False
+            return
+        self.fight_name.setText(encounter.name)
+        self._fill_locations(encounter.location_id)
+        index = self.fight_status.findData(encounter.status)
+        self.fight_status.setCurrentIndex(index if index >= 0 else 0)
+        self.fight_notes.setPlainText(encounter.notes)
+        self._filling = False
+
+    def _persist_fight_meta(self) -> None:
+        if self._filling or self.encounter is None or self.encounter.id is None:
+            return
+        name = self.fight_name.text().strip() or self.encounter.name
+        self.encounter.name = name
+        self.encounter.location_id = self.fight_location.currentData()
+        self.encounter.status = str(self.fight_status.currentData() or "preparado")
+        self.encounter.notes = self.fight_notes.toPlainText()
+        queries.update_encounter(self.db.conn, self.encounter)
+        index = self.encounter_box.currentIndex()
+        if index >= 0:
+            self.encounter_box.setItemText(index, self._encounter_label(self.encounter))
 
     def _on_encounter_chosen(self, index: int) -> None:
+        if self._filling:
+            return
+        self._persist_fight_meta()
         encounter_id = self.encounter_box.itemData(index)
         if encounter_id is None:
             return
@@ -387,6 +480,7 @@ class CombatPage(QWidget):
         if encounter is None:
             return
         self.encounter = encounter
+        self._fill_fight_form(encounter)
         self._reload_combatants()
 
     def _relabel_pools(self) -> None:
@@ -445,6 +539,10 @@ class CombatPage(QWidget):
             self.btn_new,
             self.btn_delete_encounter,
             self.encounter_box,
+            self.fight_name,
+            self.fight_location,
+            self.fight_status,
+            self.fight_notes,
             self.adhoc_name,
             self.grid,
             self.grid_cols,
@@ -461,9 +559,7 @@ class CombatPage(QWidget):
         self.round_label.setText(f"Rodada {self.encounter.round}")
         index = self.encounter_box.currentIndex()
         if index >= 0:
-            self.encounter_box.setItemText(
-                index, f"{self.encounter.name}  ·  rodada {self.encounter.round}"
-            )
+            self.encounter_box.setItemText(index, self._encounter_label(self.encounter))
         self.order.blockSignals(True)
         self.order.clear()
         selected = 0
@@ -774,6 +870,7 @@ class CombatPage(QWidget):
     def _roll_initiative(self) -> None:
         if self.encounter is None or self.encounter.id is None:
             return
+        self._persist_fight_meta()
         plugin = self._plugin()
         rolled: list[Combatant] = []
         for combatant in self._combatants:
@@ -795,12 +892,20 @@ class CombatPage(QWidget):
             queries.update_combatant(self.db.conn, combatant)
         if self.encounter:
             self.encounter.round = 1
+            if self.encounter.status == "preparado":
+                self.encounter.status = "em_andamento"
+                self._fill_fight_form(self.encounter)
             queries.update_encounter(self.db.conn, self.encounter)
         self._reload_combatants()
 
     def _next_turn(self) -> None:
         if self.encounter is None or self.encounter.id is None:
             return
+        self._persist_fight_meta()
+        if self.encounter.status == "preparado":
+            self.encounter.status = "em_andamento"
+            queries.update_encounter(self.db.conn, self.encounter)
+            self._fill_fight_form(self.encounter)
         self.encounter = queries.advance_turn(self.db.conn, self.encounter.id)
         self._reload_combatants()
 
@@ -810,14 +915,15 @@ class CombatPage(QWidget):
         if self._combatants and (
             QMessageBox.question(
                 self,
-                "Novo combate",
-                "Criar um novo combate? O atual permanece no histórico.",
+                "Nova luta",
+                "Criar uma luta nova? A atual permanece no histórico.",
             )
             != QMessageBox.StandardButton.Yes
         ):
             return
+        self._persist_fight_meta()
         self.encounter = queries.create_encounter(
-            self.db.conn, self.campaign.id, f"Combate {uuid.uuid4().hex[:6]}"
+            self.db.conn, self.campaign.id, f"Luta {uuid.uuid4().hex[:6]}"
         )
         self._fill_encounters()
         self._reload_combatants()
@@ -828,7 +934,7 @@ class CombatPage(QWidget):
         if (
             QMessageBox.question(
                 self,
-                "Excluir encontro",
+                "Excluir luta",
                 f"Excluir «{self.encounter.name}» e todos os combatentes?",
             )
             != QMessageBox.StandardButton.Yes

@@ -18,6 +18,8 @@ def test_main_window_and_sheet_widgets(tmp_path):
     window.show()
     assert window.nav_page_labels() == [
         "Campanhas",
+        "Locais",
+        "Pessoas",
         "Fichas",
         "Documentos",
         "Monstros",
@@ -26,6 +28,7 @@ def test_main_window_and_sheet_widgets(tmp_path):
     ]
     nav_texts = [window.nav.item(i).text() for i in range(window.nav.count())]
     assert nav_texts[:2] == ["MESA", "Campanhas"]
+    assert "MUNDO" in nav_texts
     assert "PREPARAR" in nav_texts
     assert "JOGAR" in nav_texts
     assert window.menuBar().isHidden()
@@ -47,10 +50,14 @@ def test_main_window_and_sheet_widgets(tmp_path):
     assert window.documents_page.hint.objectName() == "pageSubtitle"
     assert window.monsters_page.hint.objectName() == "pageSubtitle"
     assert window.session_page.hint.objectName() == "pageSubtitle"
+    assert window.locations_page.hint.objectName() == "pageSubtitle"
+    assert window.people_page.hint.objectName() == "pageSubtitle"
     title_texts = [
         next(label.text() for label in page.findChildren(QLabel) if label.objectName() == "pageTitle")
         for page in (
             window.campaigns_page,
+            window.locations_page,
+            window.people_page,
             window.sheets_page,
             window.documents_page,
             window.monsters_page,
@@ -61,6 +68,8 @@ def test_main_window_and_sheet_widgets(tmp_path):
     ]
     assert title_texts == [
         "Campanhas",
+        "Locais",
+        "Pessoas",
         "Fichas",
         "Documentos",
         "Monstros",
@@ -68,8 +77,9 @@ def test_main_window_and_sheet_widgets(tmp_path):
         "Sessão",
         "Como usar",
     ]
-    assert window.help_page.toc.count() == 12
+    assert window.help_page.toc.count() == 14
     assert window.help_page.toc.item(0).text() == "Começar"
+    assert window.help_page.toc.item(3).text() == "Locais"
     assert window.sheets_page.btn_save.property("role") == "primary"
     assert window.sheets_page.btn_search.property("role") != "primary"
     assert window.documents_page.btn_import.property("role") == "primary"
@@ -78,6 +88,9 @@ def test_main_window_and_sheet_widgets(tmp_path):
     assert window.monsters_page.btn_save.property("role") != "primary"
     assert window.combat_page.btn_damage.property("role") == "foe"
     assert window.combat_page.btn_zoom.text() == "Ajustar zoom"
+    assert window.combat_page.btn_new.text() == "Nova luta"
+    assert window.combat_page.fight_name.placeholderText() == "Nome da luta"
+    assert window.session_page.hooks.placeholderText().startswith("Ganchos")
     assert window.combat_page.roster.isHidden()
     assert window.combat_page.order_empty.objectName() == "emptyHint"
     assert window.dice_panel.detail.objectName() == "diceDetail"
@@ -85,10 +98,10 @@ def test_main_window_and_sheet_widgets(tmp_path):
     rail = window.findChild(QWidget, "appRail")
     assert rail.findChild(QWidget, "mapPanel") is window.combat_page.map_panel
     assert not window.combat_page.map_panel.isVisibleTo(window)
-    window.select_page(4)
+    window.select_page(6)
     app.processEvents()
     assert window.combat_page.map_panel.isVisibleTo(window)
-    window.select_page(6)
+    window.select_page(8)
     app.processEvents()
     assert window.stack.currentWidget() is window.help_page
     assert not window.combat_page.map_panel.isVisibleTo(window)
@@ -101,7 +114,7 @@ def test_main_window_and_sheet_widgets(tmp_path):
     assert window.dice_panel.objectName() == "dicePanel"
     assert window.dice_panel.btn_clear.text() == "Limpar histórico"
     side_panels = window.findChildren(QWidget, "sidePanel")
-    assert len(side_panels) >= 6
+    assert len(side_panels) >= 8
     assert any(panel.property("tone") == "paper" for panel in side_panels)
     for plugin in PluginRegistry().all():
         widget = plugin.create_sheet_widget()

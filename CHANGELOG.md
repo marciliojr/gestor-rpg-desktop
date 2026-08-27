@@ -1,7 +1,29 @@
 # Changelog
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
-Versão do aplicativo (semver). O schema SQLite desta linha é **v6** (não há schema v7).
+Versão do aplicativo (semver). O schema SQLite desta linha é **v7**.
+
+## [1.1.0] — 2026-08-27
+
+A mesa passa a servir o caderno do mestre: mundo, pessoas e lutas com situação, sem sair do recorte Victory + 5e.
+
+### Adicionado
+
+- Grupo **MUNDO** na navegação: páginas **Locais** (cidades, vilas, tavernas, regiões, masmorras) e **Pessoas** (elenco com papel, local, atitude, aparência, notas e segredos).
+- Schema **v7**: tabelas `locations` e `people`; luta com `location_id`, `notes` e `status` (preparada / em andamento / encerrada); notas de sessão com ganchos da próxima.
+- Combate: nome, local, situação e notas da luta; combo mostra a situação; iniciativa ou próximo turno inicia a luta.
+- Sessão: campo **Próxima sessão** para ganchos e fios soltos.
+- Backup JSON e PDF da campanha incluem locais, pessoas, situação das lutas e ganchos.
+- CI no GitHub Actions (`pytest` em pull request e em `main`).
+- Empacote de release para **Linux** (AppImage + tar.gz), **Windows** (zip com `GestorRPG.exe`) e **macOS** (zip com `Gestor RPG.app`), gerado ao publicar a tag `v1.1.0`.
+
+### Alterado
+
+- Navegação: MESA / MUNDO / PREPARAR / JOGAR. Abrir campanha vai para Locais.
+- Página Combate fala em **luta** (Nova luta, Excluir luta); a mesa escolhe a luta em andamento ao abrir Combate.
+- Página Sessão vira o caderno da partida (notas + XP + tesouro + próxima sessão).
+- Como usar cobre Locais, Pessoas e o fluxo de preparar/rodar lutas.
+- Versão do aplicativo passa de 1.0.0 para **1.1.0**.
 
 ## [1.0.0] — 2026-08-26
 

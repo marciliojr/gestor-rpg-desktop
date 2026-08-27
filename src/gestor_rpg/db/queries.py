@@ -7,6 +7,9 @@ import uuid
 from datetime import datetime, timezone
 
 from gestor_rpg.core.models import (
+    ENCOUNTER_STATUSES,
+    LOCATION_KINDS,
+    PEOPLE_ATTITUDES,
     Campaign,
     Character,
     CharacterHit,
@@ -15,6 +18,8 @@ from gestor_rpg.core.models import (
     DocumentHit,
     Encounter,
     ImportedDocument,
+    Location,
+    Person,
     SessionEntry,
 )
 from gestor_rpg.core.plugin import write_pool
@@ -455,6 +460,211 @@ def _row_int(row: sqlite3.Row, key: str, default: int = 0) -> int:
     return int(row[key])
 
 
+def _row_optional_int(row: sqlite3.Row, key: str) -> int | None:
+    if key not in row.keys() or row[key] is None:
+        return None
+    return int(row[key])
+
+
+def _row_text(row: sqlite3.Row, key: str, default: str = "") -> str:
+    if key not in row.keys() or row[key] is None:
+        return default
+    return str(row[key])
+
+
+_LOCATION_KIND_KEYS = {key for key, _label in LOCATION_KINDS}
+_PEOPLE_ATTITUDE_KEYS = {key for key, _label in PEOPLE_ATTITUDES}
+_ENCOUNTER_STATUS_KEYS = {key for key, _label in ENCOUNTER_STATUSES}
+
+
+def _norm_location_kind(kind: str) -> str:
+    return kind if kind in _LOCATION_KIND_KEYS else "outro"
+
+
+def _norm_attitude(attitude: str) -> str:
+    return attitude if attitude in _PEOPLE_ATTITUDE_KEYS else "neutro"
+
+
+def _norm_encounter_status(status: str) -> str:
+    return status if status in _ENCOUNTER_STATUS_KEYS else "preparado"
+
+
+def _location_from_row(row: sqlite3.Row) -> Location:
+    return Location(
+        id=int(row["id"]),
+        uuid=str(row["uuid"]),
+        campaign_id=int(row["campaign_id"]),
+        name=str(row["name"]),
+        kind=_norm_location_kind(str(row["kind"] or "cidade")),
+        notes=str(row["notes"] or ""),
+        secrets=str(row["secrets"] or ""),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
+    )
+
+
+def list_locations(conn: sqlite3.Connection, campaign_id: int) -> list[Location]:
+    rows = conn.execute(
+        """
+        SELECT * FROM locations
+        WHERE campaign_id = ?
+        ORDER BY name COLLATE NOCASE, id
+        """,
+        (campaign_id,),
+    ).fetchall()
+    return [_location_from_row(r) for r in rows]
+
+
+def get_location(conn: sqlite3.Connection, location_id: int) -> Location | None:
+    row = conn.execute("SELECT * FROM locations WHERE id = ?", (location_id,)).fetchone()
+    return _location_from_row(row) if row else None
+
+
+def create_location(conn: sqlite3.Connection, location: Location) -> Location:
+    now = _now()
+    uid = location.uuid or str(uuid.uuid4())
+    cur = conn.execute(
+        """
+        INSERT INTO locations (
+            uuid, campaign_id, name, kind, notes, secrets, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            uid,
+            location.campaign_id,
+            location.name,
+            _norm_location_kind(location.kind),
+            location.notes,
+            location.secrets,
+            now,
+            now,
+        ),
+    )
+    conn.commit()
+    created = get_location(conn, int(cur.lastrowid))
+    assert created is not None
+    return created
+
+
+def update_location(conn: sqlite3.Connection, location: Location) -> None:
+    conn.execute(
+        """
+        UPDATE locations SET
+            name = ?, kind = ?, notes = ?, secrets = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (
+            location.name,
+            _norm_location_kind(location.kind),
+            location.notes,
+            location.secrets,
+            _now(),
+            location.id,
+        ),
+    )
+    conn.commit()
+
+
+def delete_location(conn: sqlite3.Connection, location_id: int) -> None:
+    conn.execute("DELETE FROM locations WHERE id = ?", (location_id,))
+    conn.commit()
+
+
+def _person_from_row(row: sqlite3.Row) -> Person:
+    return Person(
+        id=int(row["id"]),
+        uuid=str(row["uuid"]),
+        campaign_id=int(row["campaign_id"]),
+        location_id=_row_optional_int(row, "location_id"),
+        character_id=_row_optional_int(row, "character_id"),
+        name=str(row["name"] or ""),
+        role=str(row["role"] or ""),
+        appearance=str(row["appearance"] or ""),
+        notes=str(row["notes"] or ""),
+        secrets=str(row["secrets"] or ""),
+        attitude=_norm_attitude(str(row["attitude"] or "neutro")),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
+    )
+
+
+def list_people(conn: sqlite3.Connection, campaign_id: int) -> list[Person]:
+    rows = conn.execute(
+        """
+        SELECT * FROM people
+        WHERE campaign_id = ?
+        ORDER BY name COLLATE NOCASE, id
+        """,
+        (campaign_id,),
+    ).fetchall()
+    return [_person_from_row(r) for r in rows]
+
+
+def get_person(conn: sqlite3.Connection, person_id: int) -> Person | None:
+    row = conn.execute("SELECT * FROM people WHERE id = ?", (person_id,)).fetchone()
+    return _person_from_row(row) if row else None
+
+
+def create_person(conn: sqlite3.Connection, person: Person) -> Person:
+    now = _now()
+    uid = person.uuid or str(uuid.uuid4())
+    cur = conn.execute(
+        """
+        INSERT INTO people (
+            uuid, campaign_id, location_id, character_id, name, role, appearance,
+            notes, secrets, attitude, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            uid,
+            person.campaign_id,
+            person.location_id,
+            person.character_id,
+            person.name,
+            person.role,
+            person.appearance,
+            person.notes,
+            person.secrets,
+            _norm_attitude(person.attitude),
+            now,
+            now,
+        ),
+    )
+    conn.commit()
+    created = get_person(conn, int(cur.lastrowid))
+    assert created is not None
+    return created
+
+
+def update_person(conn: sqlite3.Connection, person: Person) -> None:
+    conn.execute(
+        """
+        UPDATE people SET
+            location_id = ?, character_id = ?, name = ?, role = ?, appearance = ?,
+            notes = ?, secrets = ?, attitude = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (
+            person.location_id,
+            person.character_id,
+            person.name,
+            person.role,
+            person.appearance,
+            person.notes,
+            person.secrets,
+            _norm_attitude(person.attitude),
+            _now(),
+            person.id,
+        ),
+    )
+    conn.commit()
+
+
+def delete_person(conn: sqlite3.Connection, person_id: int) -> None:
+    conn.execute("DELETE FROM people WHERE id = ?", (person_id,))
+    conn.commit()
+
+
 def _encounter_from_row(row: sqlite3.Row) -> Encounter:
     return Encounter(
         id=int(row["id"]),
@@ -463,6 +673,9 @@ def _encounter_from_row(row: sqlite3.Row) -> Encounter:
         round=int(row["round"] or 1),
         grid_cols=max(4, _row_int(row, "grid_cols", 12)),
         grid_rows=max(4, _row_int(row, "grid_rows", 8)),
+        location_id=_row_optional_int(row, "location_id"),
+        notes=_row_text(row, "notes"),
+        status=_norm_encounter_status(_row_text(row, "status", "preparado")),
         created_at=str(row["created_at"]),
         updated_at=str(row["updated_at"]),
     )
@@ -495,17 +708,31 @@ def get_latest_encounter(conn: sqlite3.Connection, campaign_id: int) -> Encounte
 
 
 def create_encounter(
-    conn: sqlite3.Connection, campaign_id: int, name: str = "Combate atual"
+    conn: sqlite3.Connection,
+    campaign_id: int,
+    name: str = "Combate atual",
+    location_id: int | None = None,
+    notes: str = "",
+    status: str = "preparado",
 ) -> Encounter:
     now = _now()
     cur = conn.execute(
         """
         INSERT INTO encounters (
-            campaign_id, name, round, grid_cols, grid_rows, created_at, updated_at
+            campaign_id, name, round, grid_cols, grid_rows,
+            location_id, notes, status, created_at, updated_at
         )
-        VALUES (?, ?, 1, 12, 8, ?, ?)
+        VALUES (?, ?, 1, 12, 8, ?, ?, ?, ?, ?)
         """,
-        (campaign_id, name, now, now),
+        (
+            campaign_id,
+            name,
+            location_id,
+            notes,
+            _norm_encounter_status(status),
+            now,
+            now,
+        ),
     )
     conn.commit()
     encounter = get_encounter(conn, int(cur.lastrowid))
@@ -513,17 +740,28 @@ def create_encounter(
     return encounter
 
 
+def pick_play_encounter(conn: sqlite3.Connection, campaign_id: int) -> Encounter | None:
+    encounters = list_encounters(conn, campaign_id)
+    for wanted in ("em_andamento", "preparado"):
+        for item in encounters:
+            if item.status == wanted:
+                return item
+    return encounters[0] if encounters else None
+
+
 def get_or_create_encounter(conn: sqlite3.Connection, campaign_id: int) -> Encounter:
-    existing = get_latest_encounter(conn, campaign_id)
+    existing = pick_play_encounter(conn, campaign_id)
     if existing is not None:
         return existing
-    return create_encounter(conn, campaign_id)
+    return create_encounter(conn, campaign_id, status="em_andamento")
 
 
 def update_encounter(conn: sqlite3.Connection, encounter: Encounter) -> None:
     conn.execute(
         """
-        UPDATE encounters SET name = ?, round = ?, grid_cols = ?, grid_rows = ?, updated_at = ?
+        UPDATE encounters SET
+            name = ?, round = ?, grid_cols = ?, grid_rows = ?,
+            location_id = ?, notes = ?, status = ?, updated_at = ?
         WHERE id = ?
         """,
         (
@@ -531,6 +769,9 @@ def update_encounter(conn: sqlite3.Connection, encounter: Encounter) -> None:
             encounter.round,
             max(4, int(encounter.grid_cols or 12)),
             max(4, int(encounter.grid_rows or 8)),
+            encounter.location_id,
+            encounter.notes or "",
+            _norm_encounter_status(encounter.status),
             _now(),
             encounter.id,
         ),
@@ -773,6 +1014,7 @@ def _session_from_row(row: sqlite3.Row) -> SessionEntry:
         body=str(row["body"] or ""),
         xp=str(row["xp"] or ""),
         treasure=str(row["treasure"] or ""),
+        hooks=_row_text(row, "hooks"),
         created_at=str(row["created_at"] or ""),
         updated_at=str(row["updated_at"] or ""),
     )
@@ -803,9 +1045,9 @@ def create_session_entry(conn: sqlite3.Connection, entry: SessionEntry) -> Sessi
     cur = conn.execute(
         """
         INSERT INTO session_entries (
-            uuid, campaign_id, encounter_id, title, body, xp, treasure,
+            uuid, campaign_id, encounter_id, title, body, xp, treasure, hooks,
             created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             uid,
@@ -815,6 +1057,7 @@ def create_session_entry(conn: sqlite3.Connection, entry: SessionEntry) -> Sessi
             entry.body,
             entry.xp,
             entry.treasure,
+            entry.hooks,
             now,
             now,
         ),
@@ -830,7 +1073,7 @@ def update_session_entry(conn: sqlite3.Connection, entry: SessionEntry) -> None:
         """
         UPDATE session_entries SET
             encounter_id = ?, title = ?, body = ?, xp = ?, treasure = ?,
-            updated_at = ?
+            hooks = ?, updated_at = ?
         WHERE id = ?
         """,
         (
@@ -839,6 +1082,7 @@ def update_session_entry(conn: sqlite3.Connection, entry: SessionEntry) -> None:
             entry.body,
             entry.xp,
             entry.treasure,
+            entry.hooks,
             _now(),
             entry.id,
         ),
@@ -861,6 +1105,9 @@ def export_campaign(conn: sqlite3.Connection, campaign_id: int) -> dict:
     characters = list_characters(conn, campaign_id)
     char_ids = {item.id for item in characters if item.id is not None}
     uuid_by_id = {item.id: item.uuid for item in characters if item.id is not None}
+    locations = list_locations(conn, campaign_id)
+    loc_uuid_by_id = {item.id: item.uuid for item in locations if item.id is not None}
+    people = list_people(conn, campaign_id)
     encounters_payload = []
     for encounter in list_encounters(conn, campaign_id):
         if encounter.id is None:
@@ -892,6 +1139,9 @@ def export_campaign(conn: sqlite3.Connection, campaign_id: int) -> dict:
                 "round": encounter.round,
                 "grid_cols": encounter.grid_cols,
                 "grid_rows": encounter.grid_rows,
+                "location_uuid": loc_uuid_by_id.get(encounter.location_id),
+                "notes": encounter.notes,
+                "status": encounter.status,
                 "combatants": combatants,
             }
         )
@@ -921,6 +1171,7 @@ def export_campaign(conn: sqlite3.Connection, campaign_id: int) -> dict:
                 "body": entry.body,
                 "xp": entry.xp,
                 "treasure": entry.treasure,
+                "hooks": entry.hooks,
                 "encounter_name": encounter_name_by_id.get(entry.encounter_id)
                 if entry.encounter_id is not None
                 else None,
@@ -944,6 +1195,30 @@ def export_campaign(conn: sqlite3.Connection, campaign_id: int) -> dict:
                 "attributes": item.attributes,
             }
             for item in characters
+        ],
+        "locations": [
+            {
+                "uuid": item.uuid,
+                "name": item.name,
+                "kind": item.kind,
+                "notes": item.notes,
+                "secrets": item.secrets,
+            }
+            for item in locations
+        ],
+        "people": [
+            {
+                "uuid": item.uuid,
+                "name": item.name,
+                "role": item.role,
+                "appearance": item.appearance,
+                "notes": item.notes,
+                "secrets": item.secrets,
+                "attitude": item.attitude,
+                "location_uuid": loc_uuid_by_id.get(item.location_id),
+                "character_uuid": uuid_by_id.get(item.character_id),
+            }
+            for item in people
         ],
         "encounters": encounters_payload,
         "documents": documents_payload,
@@ -986,6 +1261,46 @@ def import_campaign(conn: sqlite3.Connection, payload: dict) -> Campaign:
         )
         if old_uuid and created.id is not None:
             uuid_map[old_uuid] = created.id
+    loc_uuid_map: dict[str, int] = {}
+    for raw in payload.get("locations") or []:
+        if not isinstance(raw, dict):
+            continue
+        old_uuid = str(raw.get("uuid") or "")
+        created = create_location(
+            conn,
+            Location(
+                id=None,
+                uuid=str(uuid.uuid4()),
+                campaign_id=campaign.id,
+                name=str(raw.get("name") or "Local"),
+                kind=str(raw.get("kind") or "cidade"),
+                notes=str(raw.get("notes") or ""),
+                secrets=str(raw.get("secrets") or ""),
+            ),
+        )
+        if old_uuid and created.id is not None:
+            loc_uuid_map[old_uuid] = created.id
+    for raw in payload.get("people") or []:
+        if not isinstance(raw, dict):
+            continue
+        loc_uuid = raw.get("location_uuid")
+        char_uuid = raw.get("character_uuid")
+        create_person(
+            conn,
+            Person(
+                id=None,
+                uuid=str(uuid.uuid4()),
+                campaign_id=campaign.id,
+                location_id=loc_uuid_map.get(str(loc_uuid)) if loc_uuid else None,
+                character_id=uuid_map.get(str(char_uuid)) if char_uuid else None,
+                name=str(raw.get("name") or "Sem nome"),
+                role=str(raw.get("role") or ""),
+                appearance=str(raw.get("appearance") or ""),
+                notes=str(raw.get("notes") or ""),
+                secrets=str(raw.get("secrets") or ""),
+                attitude=str(raw.get("attitude") or "neutro"),
+            ),
+        )
     for raw in payload.get("documents") or []:
         if not isinstance(raw, dict):
             continue
@@ -1011,8 +1326,14 @@ def import_campaign(conn: sqlite3.Connection, payload: dict) -> Campaign:
     for raw_enc in payload.get("encounters") or []:
         if not isinstance(raw_enc, dict):
             continue
+        loc_uuid = raw_enc.get("location_uuid")
         encounter = create_encounter(
-            conn, campaign.id, str(raw_enc.get("name") or "Combate")
+            conn,
+            campaign.id,
+            str(raw_enc.get("name") or "Combate"),
+            location_id=loc_uuid_map.get(str(loc_uuid)) if loc_uuid else None,
+            notes=str(raw_enc.get("notes") or ""),
+            status=str(raw_enc.get("status") or "preparado"),
         )
         encounter.round = int(raw_enc.get("round") or 1)
         encounter.grid_cols = int(raw_enc.get("grid_cols") or 12)
@@ -1069,6 +1390,7 @@ def import_campaign(conn: sqlite3.Connection, payload: dict) -> Campaign:
                 body=str(raw_session.get("body") or ""),
                 xp=str(raw_session.get("xp") or ""),
                 treasure=str(raw_session.get("treasure") or ""),
+                hooks=str(raw_session.get("hooks") or ""),
             ),
         )
     refreshed = get_campaign(conn, campaign.id)

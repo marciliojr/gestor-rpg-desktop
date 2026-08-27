@@ -26,19 +26,30 @@ from gestor_rpg.ui.combat_page import CombatPage
 from gestor_rpg.ui.dice_panel import DicePanel
 from gestor_rpg.ui.documents_page import DocumentsPage
 from gestor_rpg.ui.help_page import HelpPage
+from gestor_rpg.ui.locations_page import LocationsPage
 from gestor_rpg.ui.monsters_page import MonstersPage
 from gestor_rpg.ui.names_dialog import NamesDialog
 from gestor_rpg.ui.npc_dialog import NpcDialog
 from gestor_rpg.ui.pdf_import_dialog import PdfImportDialog
+from gestor_rpg.ui.people_page import PeoplePage
 from gestor_rpg.ui.session_page import SessionPage
 from gestor_rpg.ui.sheets.page import SheetsPage
 from gestor_rpg.ui.styles import SAGE_SOFT, apply_theme, polish_placeholders
 
-PAGE_HELP = 6
+PAGE_CAMPAIGNS = 0
+PAGE_LOCATIONS = 1
+PAGE_PEOPLE = 2
+PAGE_SHEETS = 3
+PAGE_DOCUMENTS = 4
+PAGE_MONSTERS = 5
+PAGE_COMBAT = 6
+PAGE_SESSION = 7
+PAGE_HELP = 8
 NAV_GROUPS = (
-    ("MESA", (("Campanhas", 0),)),
-    ("PREPARAR", (("Fichas", 1), ("Documentos", 2), ("Monstros", 3))),
-    ("JOGAR", (("Combate", 4), ("Sessão", 5))),
+    ("MESA", (("Campanhas", PAGE_CAMPAIGNS),)),
+    ("MUNDO", (("Locais", PAGE_LOCATIONS), ("Pessoas", PAGE_PEOPLE))),
+    ("PREPARAR", (("Fichas", PAGE_SHEETS), ("Documentos", PAGE_DOCUMENTS), ("Monstros", PAGE_MONSTERS))),
+    ("JOGAR", (("Combate", PAGE_COMBAT), ("Sessão", PAGE_SESSION))),
 )
 
 
@@ -100,6 +111,8 @@ class MainWindow(QMainWindow):
         self.btn_quit.clicked.connect(self.close)
 
         self.campaigns_page = CampaignsPage(db)
+        self.locations_page = LocationsPage(db)
+        self.people_page = PeoplePage(db)
         self.sheets_page = SheetsPage(db, self.plugins)
         self.documents_page = DocumentsPage(db)
         self.monsters_page = MonstersPage(db, self.plugins)
@@ -109,6 +122,8 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.stack.setObjectName("contentStack")
         self.stack.addWidget(self.campaigns_page)
+        self.stack.addWidget(self.locations_page)
+        self.stack.addWidget(self.people_page)
         self.stack.addWidget(self.sheets_page)
         self.stack.addWidget(self.documents_page)
         self.stack.addWidget(self.monsters_page)
@@ -240,15 +255,21 @@ class MainWindow(QMainWindow):
         self._goto_page(PAGE_HELP)
 
     def _goto_page(self, page: int) -> None:
+        if self.stack.currentIndex() == PAGE_COMBAT and page != PAGE_COMBAT:
+            self.combat_page._persist_fight_meta()
         self.stack.setCurrentIndex(page)
-        self._show_combat_map(page == 4)
-        if page == 1:
+        self._show_combat_map(page == PAGE_COMBAT)
+        if page == PAGE_LOCATIONS:
+            self.locations_page.reload()
+        elif page == PAGE_PEOPLE:
+            self.people_page.reload()
+        elif page == PAGE_SHEETS:
             self.sheets_page.reload()
-        elif page == 3:
+        elif page == PAGE_MONSTERS:
             self.monsters_page.reload()
-        elif page == 4:
+        elif page == PAGE_COMBAT:
             self.combat_page.reload()
-        elif page == 5:
+        elif page == PAGE_SESSION:
             self.session_page.reload()
 
     def _show_combat_map(self, visible: bool) -> None:
@@ -263,6 +284,8 @@ class MainWindow(QMainWindow):
 
     def _set_campaign(self, campaign: Campaign | None, *, switch_page: bool = True) -> None:
         self.campaign = campaign
+        self.locations_page.set_campaign(campaign)
+        self.people_page.set_campaign(campaign)
         self.sheets_page.set_campaign(campaign)
         self.documents_page.set_campaign(campaign)
         self.monsters_page.set_campaign(campaign)
@@ -271,7 +294,7 @@ class MainWindow(QMainWindow):
         if campaign is not None:
             queries.set_setting(self.db.conn, "current_campaign_id", str(campaign.id))
             if switch_page:
-                self.select_page(1)
+                self.select_page(PAGE_LOCATIONS)
         else:
             queries.set_setting(self.db.conn, "current_campaign_id", "")
         self._refresh_status()
@@ -308,3 +331,7 @@ class MainWindow(QMainWindow):
 
     def _names(self) -> None:
         NamesDialog(self).exec()
+
+    def closeEvent(self, event) -> None:
+        self.combat_page._persist_fight_meta()
+        super().closeEvent(event)

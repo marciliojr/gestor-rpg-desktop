@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from gestor_rpg.core.models import Character, Combatant, ImportedDocument, SessionEntry
+from gestor_rpg.core.models import Character, Combatant, ImportedDocument, Location, Person, SessionEntry
 from gestor_rpg.db.connection import Database
 from gestor_rpg.db import queries
 
@@ -67,7 +67,7 @@ def test_schema_and_character_roundtrip(tmp_path):
 def test_fts_search_and_monster_kind(tmp_path):
     db = Database(tmp_path / "fts.db")
     version = db.conn.execute("SELECT version FROM schema_version").fetchone()
-    assert int(version[0]) == 6
+    assert int(version[0]) == 7
     fts = db.conn.execute(
         "SELECT name FROM sqlite_master WHERE name = 'documents_fts'"
     ).fetchone()
@@ -273,5 +273,105 @@ def test_schema_v6_removes_alpha_and_tormenta(tmp_path):
     assert systems == ["ddt_victory", "dnd5e"]
     assert queries.get_campaign(db.conn, campaign.id) is None
     version = db.conn.execute("SELECT version FROM schema_version").fetchone()
-    assert int(version[0]) == 6
+    assert int(version[0]) == 7
+    db.close()
+
+
+def test_locations_people_and_encounter_status(tmp_path):
+    db = Database(tmp_path / "world.db")
+    systems = queries.list_systems(db.conn)
+    campaign = queries.create_campaign(db.conn, "Reino do Vale", systems[0][0])
+    city = queries.create_location(
+        db.conn,
+        Location(
+            id=None,
+            uuid=str(uuid.uuid4()),
+            campaign_id=campaign.id,
+            name="Porto Seguro",
+            kind="cidade",
+            notes="Porto comercial",
+            secrets="O prefeito barganha com piratas",
+        ),
+    )
+    character = queries.create_character(
+        db.conn,
+        Character(
+            id=None,
+            uuid=str(uuid.uuid4()),
+            campaign_id=campaign.id,
+            system_id=campaign.system_id,
+            kind="npc",
+            name="Mara",
+            attributes={},
+        ),
+    )
+    person = queries.create_person(
+        db.conn,
+        Person(
+            id=None,
+            uuid=str(uuid.uuid4()),
+            campaign_id=campaign.id,
+            location_id=city.id,
+            character_id=character.id,
+            name="Mara",
+            role="Estalajadeira",
+            attitude="aliado",
+            notes="Conhece todos os marinheiros",
+            secrets="Esconde um mapa no porão",
+        ),
+    )
+    listed = queries.list_people(db.conn, campaign.id)
+    assert listed[0].id == person.id
+    assert listed[0].location_id == city.id
+    encounter = queries.create_encounter(
+        db.conn,
+        campaign.id,
+        "Emboscada no cais",
+        location_id=city.id,
+        notes="Maré baixa",
+        status="preparado",
+    )
+    assert encounter.status == "preparado"
+    encounter.status = "em_andamento"
+    queries.update_encounter(db.conn, encounter)
+    loaded = queries.get_encounter(db.conn, encounter.id or 0)
+    assert loaded is not None
+    assert loaded.status == "em_andamento"
+    assert loaded.location_id == city.id
+    play = queries.pick_play_encounter(db.conn, campaign.id)
+    assert play is not None
+    assert play.id == encounter.id
+    entry = queries.create_session_entry(
+        db.conn,
+        SessionEntry(
+            id=None,
+            uuid=str(uuid.uuid4()),
+            campaign_id=campaign.id,
+            encounter_id=encounter.id,
+            title="Noite no porto",
+            body="O grupo chegou ao cais.",
+            hooks="O mapa no porão da Mara",
+        ),
+    )
+    payload = queries.export_campaign(db.conn, campaign.id)
+    assert payload["locations"][0]["name"] == "Porto Seguro"
+    assert payload["people"][0]["role"] == "Estalajadeira"
+    assert payload["encounters"][0]["status"] == "em_andamento"
+    assert payload["session_entries"][0]["hooks"] == "O mapa no porão da Mara"
+    imported = queries.import_campaign(db.conn, payload)
+    places = queries.list_locations(db.conn, imported.id)
+    assert any(item.name == "Porto Seguro" for item in places)
+    people = queries.list_people(db.conn, imported.id)
+    assert any(item.name == "Mara" and item.role == "Estalajadeira" for item in people)
+    imported_enc = next(
+        item for item in queries.list_encounters(db.conn, imported.id)
+        if item.name == "Emboscada no cais"
+    )
+    assert imported_enc.status == "em_andamento"
+    assert imported_enc.location_id == places[0].id
+    imported_notes = queries.list_session_entries(db.conn, imported.id)
+    assert any("porão" in item.hooks for item in imported_notes)
+    queries.delete_person(db.conn, person.id or 0)
+    queries.delete_location(db.conn, city.id or 0)
+    assert queries.get_location(db.conn, city.id or 0) is None
     db.close()

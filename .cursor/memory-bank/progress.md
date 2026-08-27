@@ -1,5 +1,14 @@
 # Progress
 
+## Feito (1.1.0)
+
+- Caderno do mestre: Locais e Pessoas (schema v7)
+- Lutas com situação, local e notas; Sessão com ganchos da próxima
+- Nav MESA / MUNDO / PREPARAR / JOGAR; abrir campanha vai para Locais
+- Backup JSON e PDF da campanha incluem o mundo
+- Testes: smoke com 8 páginas de mesa; roundtrip de locais/pessoas
+- CI no GitHub Actions; release Windows / macOS / Linux na tag `v1.1.0`
+
 ## Feito (1.0.0)
 
 - Mesa local Victory + 5e, schema v6

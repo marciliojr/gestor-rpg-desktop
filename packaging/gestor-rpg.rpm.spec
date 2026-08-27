@@ -1,5 +1,5 @@
 Name:           gestor-rpg
-Version:        1.0.0
+Version:        1.1.0
 Release:        1%{?dist}
 Summary:        Gestor desktop para mestrar RPG
 License:        LicenseRef-NOASSERTION
@@ -8,7 +8,7 @@ BuildArch:      x86_64
 
 %description
 Aplicativo desktop para mestrar RPG com 3D&T Victory e D&D 5e: campanhas,
-fichas, documentos, monstros, combate com grid e log de sessão.
+mundo (locais e pessoas), fichas, documentos, monstros, combate e notas de sessão.
 
 %prep
 
@@ -32,6 +32,9 @@ install -m 0644 %{_sourcedir}/src/gestor_rpg/resources/gestor-rpg.svg %{buildroo
 /usr/share/icons/hicolor/scalable/apps/gestor-rpg.svg
 
 %changelog
+* Thu Aug 27 2026 Gestor RPG <gestor-rpg@localhost> - 1.1.0-1
+- Mundo (locais e pessoas), lutas com situação e notas da partida.
+
 * Wed Aug 26 2026 Gestor RPG <gestor-rpg@localhost> - 1.0.0-1
 - Primeira versão estável (1.0): nav agrupada, ajuda, PDF da campanha.
 

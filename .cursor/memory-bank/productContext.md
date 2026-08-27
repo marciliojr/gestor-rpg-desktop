@@ -1,11 +1,11 @@
 # Product context
 
-O mestre precisa da mesa neste computador, sem nuvem. Abre uma campanha (Victory ou 5e), prepara fichas e PDFs, puxa monstros, roda combate e anota a sessão.
+O mestre precisa da mesa neste computador, sem nuvem. Abre uma campanha (Victory ou 5e), cadastra o mundo (cidades e pessoas), prepara fichas e PDFs, puxa monstros, roda lutas e anota a sessão.
 
 ## Janela
 
-1. Esquerda `#appSidebar`: marca, campanha, MESA / PREPARAR / JOGAR, FERRAMENTAS, Como usar, Sair
-2. Centro `#appContent`: página ativa (índices 0–6; `PAGE_HELP = 6`)
+1. Esquerda `#appSidebar`: marca, campanha, MESA / MUNDO / PREPARAR / JOGAR, FERRAMENTAS, Como usar, Sair
+2. Centro `#appContent`: página ativa (índices 0–8; `PAGE_HELP = 8`)
 3. Direita `#appRail`: Dados; em Combate o `#mapPanel` acima dos dados
 
 Ações de página ficam no miolo ou no `sidePanel` da própria página. Não ir para FERRAMENTAS nem para menu de topo.
@@ -16,4 +16,4 @@ Modo claro em `src/gestor_rpg/ui/styles.py`: canvas `#E8EEF4`, superfície `#F5F
 
 ## Plugins
 
-`hp_paths`, `format_monster_preview`, `format_sheet_html`, `monster_catalog` / `generate_monster`. Backup JSON `gestor-rpg-campaign-v1`. PDF da campanha via `format_campaign_html` + `write_sheet_pdf` (import lazy em Campanhas para evitar ciclo).
+`hp_paths`, `format_monster_preview`, `format_sheet_html`, `monster_catalog` / `generate_monster`. Backup JSON `gestor-rpg-campaign-v1` (inclui locais e pessoas). PDF da campanha via `format_campaign_html` + `write_sheet_pdf` (import lazy em Campanhas para evitar ciclo).
